@@ -57,8 +57,5 @@ jobs:
           loaders: fabric
           game-versions: ${{ steps.meta.outputs.mcv }}
           environment: server_only
-          files: |
-            build/libs/${{ steps.meta.outputs.jar }}
-            build/libs/${{ steps.meta.outputs.sources }}
-          file-types: |
-            ${{ steps.meta.outputs.sources }}=sources-jar
+          files: '["build/libs/${{ steps.meta.outputs.jar }}", "build/libs/${{ steps.meta.outputs.sources }}"]'
+          file-types: '{"${{ steps.meta.outputs.sources }}": "sources-jar"}'
