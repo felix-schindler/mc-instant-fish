@@ -59,12 +59,11 @@ The mod jar lands in `build/libs/`. Requires JDK 25.
 
 ## Releasing
 
-Tag the commit and push the tag to the GitHub mirror — the release workflow
-builds the jar, creates a GitHub release, and publishes to Modrinth.
+Push a `v*` tag to the GitHub mirror. CI builds the jar, creates a GitHub
+release, and publishes the same jar to Modrinth.
 
 ```sh
-./gradlew build -Pversion=1.1.0
-git tag v1.1.0 && git push --follow-tags origin main v1.1.0
+git tag vX.Y.Z && git push
 ```
 
 The tag is the single source of truth: `v1.1.0` produces version `1.1.0` on

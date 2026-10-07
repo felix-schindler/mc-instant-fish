@@ -1,0 +1,69 @@
+name: build & release
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: gradle/actions/wrapper-validation@v6
+      - uses: actions/setup-java@v6
+        with:
+          java-version: '25'
+          distribution: microsoft
+          cache: gradle
+
+      - name: resolve version
+        id: rel
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          {
+            echo "gradle_arg=-Pversion=$version"
+            echo "version=$version"
+            echo "jar=instantfish-$version.jar"
+            echo "sources=instantfish-$version-sources.jar"
+            # grep'd so Modrinth's game version can't drift from the jar's
+            echo "mcv=$(grep '^minecraft_version=' gradle.properties | cut -d= -f2)"
+          } >> "$GITHUB_OUTPUT"
+
+      # off-tag there is no gradle_arg, so the jar carries gradle.properties' version
+      - name: build
+        run: ./gradlew build ${{ steps.rel.outputs.gradle_arg }}
+
+      - name: keep the jars
+        uses: actions/upload-artifact@v7
+        with:
+          name: jars
+          path: build/libs/
+
+      - name: github release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v3
+        with:
+          generate_release_notes: true
+          files: |
+            build/libs/${{ steps.rel.outputs.jar }}
+            build/libs/${{ steps.rel.outputs.sources }}
+
+      - name: modrinth
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: cloudnode-pro/modrinth-publish@v2
+        with:
+          token: ${{ secrets.MODRINTH_TOKEN }}
+          project: 3G6CuzmD
+          name: Instant Fish ${{ steps.rel.outputs.version }}
+          version: ${{ steps.rel.outputs.version }}
+          loaders: fabric
+          game-versions: ${{ steps.rel.outputs.mcv }}
+          environment: server_only
+          files: '["build/libs/${{ steps.rel.outputs.jar }}", "build/libs/${{ steps.rel.outputs.sources }}"]'
+          file-types: '{"${{ steps.rel.outputs.sources }}": "sources-jar"}'
