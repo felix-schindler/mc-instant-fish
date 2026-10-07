@@ -1,0 +1,64 @@
+name: release
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout repository
+        uses: actions/checkout@v7
+      - name: validate gradle wrapper
+        uses: gradle/actions/wrapper-validation@v6
+      - name: setup jdk
+        uses: actions/setup-java@v6
+        with:
+          java-version: '25'
+          distribution: 'microsoft'
+          cache: gradle
+      - name: make gradle wrapper executable
+        run: chmod +x ./gradlew
+
+      - name: resolve version
+        id: meta
+        run: |
+          tag="${{ github.ref_name }}"
+          version="${tag#v}"
+          {
+            echo "version=$version"
+            echo "jar=instantfish-$version.jar"
+            echo "sources=instantfish-$version-sources.jar"
+            # read the MC version from gradle.properties so Modrinth can't drift from the jar
+            echo "mcv=$(grep '^minecraft_version=' gradle.properties | cut -d= -f2)"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: build
+        run: ./gradlew build -Pversion=${{ steps.meta.outputs.version }}
+
+      - name: github release
+        uses: softprops/action-gh-release@v3
+        with:
+          generate_release_notes: true
+          files: |
+            build/libs/${{ steps.meta.outputs.jar }}
+            build/libs/${{ steps.meta.outputs.sources }}
+
+      - name: publish to modrinth
+        uses: cloudnode-pro/modrinth-publish@v2
+        with:
+          token: ${{ secrets.MODRINTH_TOKEN }}
+          project: instant-fish
+          name: Instant Fish ${{ steps.meta.outputs.version }}
+          version: ${{ steps.meta.outputs.version }}
+          loaders: fabric
+          game-versions: ${{ steps.meta.outputs.mcv }}
+          environment: server_only
+          files: |
+            build/libs/${{ steps.meta.outputs.jar }}
+            build/libs/${{ steps.meta.outputs.sources }}
+          file-types: |
+            ${{ steps.meta.outputs.sources }}=sources-jar

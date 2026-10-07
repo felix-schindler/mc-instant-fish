@@ -5,9 +5,14 @@
 	"name": "Instant Fish",
 	"description": "Fishing rods catch instantly: no waiting, no reeling in.",
 	"authors": [
-		"felix"
+		"FelixDev"
 	],
-	"license": "CC0-1.0",
+	"contact": {
+		"homepage": "https://modrinth.com/mod/instant-fish",
+		"sources": "https://github.com/felix-schindler/mc-instant-fish",
+		"issues": "https://github.com/felix-schindler/mc-instant-fish/issues"
+	},
+	"license": "MIT",
 	"environment": "*",
 	"mixins": [
 		"instantfish.mixins.json"
